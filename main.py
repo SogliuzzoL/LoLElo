@@ -132,6 +132,23 @@ async def elo_teams(interaction: discord.Interaction, joueurs: str):
         f"📌 **Équipe A**\n{a_desc}\n\n📌 **Équipe B**\n{b_desc}\n\n{msg}"
     )
 
+@tree.command(name="elo_top", description="Affiche le classement des joueurs par Elo.")
+@app_commands.describe(top_n="Nombre de joueurs à afficher (par défaut 5)")
+async def elo_top(interaction: discord.Interaction, top_n: int = 5):
+    players = load_players()
+    if not players:
+        await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
+        return
+
+    sorted_players = sorted(players.items(), key=lambda x: x[1]['elo'], reverse=True)
+    top_players = sorted_players[:top_n]
+
+    msg = "**🏅 Top des joueurs par Elo :**\n"
+    for rank, (name, data) in enumerate(top_players, start=1):
+        msg += f"{rank}. {name} - Elo: {data['elo']} (Matches: {data['nb_matchs']})\n"
+
+    await interaction.response.send_message(msg)
+
 # Ready + Sync
 @bot.event
 async def on_ready():
