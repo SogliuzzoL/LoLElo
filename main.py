@@ -29,10 +29,6 @@ def save_players(players):
     with open(DATA_FILE, "w") as f:
         json.dump(players, f, indent=2)
 
-def register_player(players, name):
-    if name not in players:
-        players[name] = {"elo": ELO_INIT, "nb_matchs": 0}
-
 def expected_score(elo_a, elo_b):
     return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
