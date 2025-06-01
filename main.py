@@ -105,12 +105,18 @@ async def elo_teams(interaction: discord.Interaction, joueurs: str):
         await interaction.response.send_message(f"❌ {msg}", ephemeral=True)
         return
 
+    # Calcul de l'elo moyen pour chaque équipe
+    elo_moyen_a = sum(players[p]["elo"] for p in team_a) / len(team_a)
+    elo_moyen_b = sum(players[p]["elo"] for p in team_b) / len(team_b)
+
     a_desc = "\n".join([f"- {players[p]['display_name']} ({players[p]['elo']})" for p in team_a])
     b_desc = "\n".join([f"- {players[p]['display_name']} ({players[p]['elo']})" for p in team_b])
 
     await interaction.response.send_message(
-        f"📌 **Équipe A**\n{a_desc}\n\n📌 **Équipe B**\n{b_desc}\n\n{msg}"
+        f"📌 **Équipe A** (ELO moyen : {elo_moyen_a:.1f})\n{a_desc}\n\n"
+        f"📌 **Équipe B** (ELO moyen : {elo_moyen_b:.1f})\n{b_desc}\n\n{msg}"
     )
+
 
 @tree.command(name="elo_match", description="Enregistre un match entre deux équipes.")
 @app_commands.describe(winner="Vainqueur (A ou B)", equipe_a="Liste des joueurs équipe A", equipe_b="Liste équipe B")
