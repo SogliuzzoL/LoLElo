@@ -80,6 +80,12 @@ def generate_balanced_teams(players, player_names):
     return best[0], best[1], f"Différence ELO : {min_diff}"
 
 # Slash commands
+def register_player(players, name):
+    key = name.lower()
+    if key not in players:
+        players[key] = {"elo": ELO_INIT, "nb_matchs": 0, "display_name": name}
+
+# Dans tes commandes, quand tu récupères les joueurs, il faut normaliser l'entrée :
 @tree.command(name="elo_add", description="Ajoute un ou plusieurs joueurs au classement.")
 @app_commands.describe(joueurs="Noms des joueurs séparés par des espaces")
 async def elo_add(interaction: discord.Interaction, joueurs: str):
@@ -90,12 +96,38 @@ async def elo_add(interaction: discord.Interaction, joueurs: str):
     save_players(players)
     await interaction.response.send_message(f"✅ Joueurs enregistrés : {', '.join(noms)}", ephemeral=True)
 
+# Exemple dans elo_teams, pour vérifier la présence en ignorant la casse :
+@tree.command(name="elo_teams", description="Génère automatiquement des équipes équilibrées.")
+@app_commands.describe(joueurs="Noms des joueurs séparés par des espaces")
+async def elo_teams(interaction: discord.Interaction, joueurs: str):
+    players = load_players()
+    noms = joueurs.split()
+    # garder uniquement les joueurs existants (en ignorant la casse)
+    noms_valides = [j for j in noms if j.lower() in players]
+
+    if len(noms_valides) < 2:
+        await interaction.response.send_message("❌ Pas assez de joueurs.", ephemeral=True)
+        return
+
+    team_a, team_b, msg = generate_balanced_teams(players, [j.lower() for j in noms_valides])
+    if not team_a:
+        await interaction.response.send_message(f"❌ {msg}", ephemeral=True)
+        return
+
+    a_desc = "\n".join([f"- {players[p]['display_name']} ({players[p]['elo']})" for p in team_a])
+    b_desc = "\n".join([f"- {players[p]['display_name']} ({players[p]['elo']})" for p in team_b])
+
+    await interaction.response.send_message(
+        f"📌 **Équipe A**\n{a_desc}\n\n📌 **Équipe B**\n{b_desc}\n\n{msg}"
+    )
+
+# Même principe dans les autres commandes, par exemple dans elo_match :
 @tree.command(name="elo_match", description="Enregistre un match entre deux équipes.")
 @app_commands.describe(winner="Vainqueur (A ou B)", equipe_a="Liste des joueurs équipe A", equipe_b="Liste équipe B")
 async def elo_match(interaction: discord.Interaction, winner: str, equipe_a: str, equipe_b: str):
     players = load_players()
-    team_a = equipe_a.split()
-    team_b = equipe_b.split()
+    team_a = [p.lower() for p in equipe_a.split()]
+    team_b = [p.lower() for p in equipe_b.split()]
     winner = winner.upper()
 
     for p in team_a + team_b:
@@ -110,28 +142,7 @@ async def elo_match(interaction: discord.Interaction, winner: str, equipe_a: str
 
     await interaction.response.send_message(f"🏆 Match enregistré. Victoire équipe {winner}.", ephemeral=True)
 
-@tree.command(name="elo_teams", description="Génère automatiquement des équipes équilibrées.")
-@app_commands.describe(joueurs="Noms des joueurs séparés par des espaces")
-async def elo_teams(interaction: discord.Interaction, joueurs: str):
-    players = load_players()
-    noms = joueurs.split()
-    noms = [j for j in noms if j in players]
-    if len(noms) < 2:
-        await interaction.response.send_message("❌ Pas assez de joueurs.", ephemeral=True)
-        return
-
-    team_a, team_b, msg = generate_balanced_teams(players, noms)
-    if not team_a:
-        await interaction.response.send_message(f"❌ {msg}", ephemeral=True)
-        return
-
-    a_desc = "\n".join([f"- {p} ({players[p]['elo']})" for p in team_a])
-    b_desc = "\n".join([f"- {p} ({players[p]['elo']})" for p in team_b])
-
-    await interaction.response.send_message(
-        f"📌 **Équipe A**\n{a_desc}\n\n📌 **Équipe B**\n{b_desc}\n\n{msg}"
-    )
-
+# Et dans elo_top, on affiche bien la version display_name
 @tree.command(name="elo_top", description="Affiche le classement des joueurs par Elo.")
 @app_commands.describe(top_n="Nombre de joueurs à afficher (par défaut 5)")
 async def elo_top(interaction: discord.Interaction, top_n: int = 5):
@@ -144,10 +155,11 @@ async def elo_top(interaction: discord.Interaction, top_n: int = 5):
     top_players = sorted_players[:top_n]
 
     msg = "**🏅 Top des joueurs par Elo :**\n"
-    for rank, (name, data) in enumerate(top_players, start=1):
-        msg += f"{rank}. {name} - Elo: {data['elo']} (Matches: {data['nb_matchs']})\n"
+    for rank, (key, data) in enumerate(top_players, start=1):
+        msg += f"{rank}. {data['display_name']} - Elo: {data['elo']} (Matches: {data['nb_matchs']})\n"
 
     await interaction.response.send_message(msg)
+
 
 # Ready + Sync
 @bot.event
