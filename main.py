@@ -126,7 +126,7 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
 
         msg += (
             f"{rank}. {data['display_name']} - μ: {data['mu']:.2f} "
-            f"(σ: {data['sigma']:.2f}, Win-Rate: {win_rate:.2f}, Nombre de parties: {data['nb_matchs']})\n"
+            f"(σ: {data['sigma']:.2f}, WR: {win_rate*100:.2f}%, Matches: {data['nb_matchs']})\n"
         )
 
     await interaction.response.send_message(msg)
