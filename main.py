@@ -5,6 +5,8 @@ from typing import List
 from trueskill import Rating, rate
 import json
 import os
+import itertools
+import math
 
 # Chargement config
 with open("config.json", "r") as f:
@@ -105,8 +107,8 @@ async def match(interaction: discord.Interaction, winner: str, equipe_a: str, eq
     await interaction.response.send_message(msg)
 
 @tree.command(name="top", description="Affiche le classement des joueurs par Elo.")
-@app_commands.describe(top_n="Nombre de joueurs à afficher (par défaut 20)")
-async def top(interaction: discord.Interaction, top_n: int = 20):
+@app_commands.describe(top_n="Nombre de joueurs à afficher")
+async def top(interaction: discord.Interaction, top_n: int = 25):
     players = load_players()
     if not players:
         await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
@@ -124,13 +126,10 @@ async def top(interaction: discord.Interaction, top_n: int = 20):
 
         msg += (
             f"{rank}. {data['display_name']} - μ: {data['mu']:.2f} "
-            f"(σ: {data['sigma']:.2f}, Win-Rate: {win_rate:.2f})\n"
+            f"(σ: {data['sigma']:.2f}, Win-Rate: {win_rate:.2f}, Nombre de parties: {data['nb_matchs']})\n"
         )
 
     await interaction.response.send_message(msg)
-
-import itertools
-import math
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
 @app_commands.describe(joueurs="Noms des joueurs séparés par des espaces (nombre pair requis)")
