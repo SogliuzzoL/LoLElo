@@ -52,18 +52,6 @@ def process_match(players, team_a, team_b, winner):
         if winner == "B":
             players[player]["nb_win"] += 1
 
-
-
-    # for p in team_a:
-    #     exp = expected_score(players[p]["elo"], elo_b_avg)
-    #     players[p]["elo"] = update_elo(players[p]["elo"], exp, result_a)
-    #     players[p]["nb_matchs"] += 1
-
-    # for p in team_b:
-    #     exp = expected_score(players[p]["elo"], elo_a_avg)
-    #     players[p]["elo"] = update_elo(players[p]["elo"], exp, result_b)
-    #     players[p]["nb_matchs"] += 1
-
 # Bot setup
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
