@@ -194,3 +194,4 @@ cython_debug/
 .cursorindexingignore
 config.json
 players.json
+trueskill.json
