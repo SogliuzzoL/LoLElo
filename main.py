@@ -123,13 +123,16 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
     # Données pour l'histogramme
     noms = [data.get('display_name', key) for key, data in top_players]
     mus = [data.get('mu', 0) for _, data in top_players]
+    sigmas = [data.get('sigma', 0) for _, data in top_players]
 
-    # Création du graphique
+    # Création du graphique avec barres d'incertitude
     plt.figure(figsize=(10, 0.4 * len(noms) + 2))
-    sns.barplot(x=mus, y=noms, palette="viridis")
+    y_pos = range(len(noms))
+    plt.barh(y_pos, mus, xerr=sigmas, align='center', color='mediumseagreen', ecolor='black', capsize=5)
+    plt.yticks(y_pos, noms)
     plt.xlabel("μ (Moyenne de performance)")
-    plt.ylabel("Joueurs")
-    plt.title("Classement TrueSkill")
+    plt.title("Classement TrueSkill avec incertitude (σ)")
+    plt.gca().invert_yaxis()
     plt.grid(axis='x', linestyle='--', alpha=0.5)
     plt.tight_layout()
 
@@ -154,6 +157,7 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
         )
 
     await interaction.response.send_message(content=msg, file=file)
+
 
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
