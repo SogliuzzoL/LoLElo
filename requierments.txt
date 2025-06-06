@@ -2,3 +2,4 @@ discord
 trueskill
 seaborn
 matplotlib
+numpy

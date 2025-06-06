@@ -3,12 +3,14 @@ from discord.ext import commands
 from discord import app_commands
 from typing import List
 from trueskill import Rating, rate
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import seaborn as sns
+import numpy as np
 import json
 import os
 import itertools
 import math
-import matplotlib.pyplot as plt
-import seaborn as sns
 import io
 
 # Chargement config
@@ -120,15 +122,17 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
     sorted_players = sorted(players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
     top_players = sorted_players[:top_n]
 
-    # Données pour l'histogramme
     noms = [data.get('display_name', key) for key, data in top_players]
     mus = [data.get('mu', 0) for _, data in top_players]
     sigmas = [data.get('sigma', 0) for _, data in top_players]
 
-    # Création du graphique avec barres d'incertitude
+    # Création du gradient de couleur basé sur μ
+    norm = plt.Normalize(min(mus), max(mus))
+    colors = cm.viridis(norm(mus))
+
     plt.figure(figsize=(10, 0.4 * len(noms) + 2))
     y_pos = range(len(noms))
-    plt.barh(y_pos, mus, xerr=sigmas, align='center', color='mediumseagreen', ecolor='black', capsize=5)
+    plt.barh(y_pos, mus, xerr=sigmas, align='center', color=colors, ecolor='black', capsize=5)
     plt.yticks(y_pos, noms)
     plt.xlabel("μ (Moyenne de performance)")
     plt.title("Classement TrueSkill avec incertitude (σ)")
@@ -136,7 +140,6 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
     plt.grid(axis='x', linestyle='--', alpha=0.5)
     plt.tight_layout()
 
-    # Sauvegarde en mémoire
     buffer = io.BytesIO()
     plt.savefig(buffer, format="png")
     buffer.seek(0)
@@ -144,7 +147,6 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
 
     file = discord.File(buffer, filename="top_players.png")
 
-    # Message texte
     msg = "**🏅 Top des joueurs par TrueSkill :**\n"
     for rank, (key, data) in enumerate(top_players, start=1):
         nb_matchs = data.get('nb_matchs', 0)
@@ -157,8 +159,6 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
         )
 
     await interaction.response.send_message(content=msg, file=file)
-
-
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
 @app_commands.describe(joueurs="Noms des joueurs séparés par des espaces (nombre pair requis)")
