@@ -7,6 +7,9 @@ import json
 import os
 import itertools
 import math
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
 
 # Chargement config
 with open("config.json", "r") as f:
@@ -114,22 +117,44 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
         await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
         return
 
-    sorted_players = sorted(players.items(), key=lambda x: x[1]['mu'], reverse=True)
+    sorted_players = sorted(players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
     top_players = sorted_players[:top_n]
 
+    # Données pour l'histogramme
+    noms = [data.get('display_name', key) for key, data in top_players]
+    mus = [data.get('mu', 0) for _, data in top_players]
+
+    # Création du graphique
+    plt.figure(figsize=(10, 0.4 * len(noms) + 2))
+    sns.barplot(x=mus, y=noms, palette="viridis")
+    plt.xlabel("μ (Moyenne de performance)")
+    plt.ylabel("Joueurs")
+    plt.title("Classement TrueSkill")
+    plt.grid(axis='x', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+
+    # Sauvegarde en mémoire
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format="png")
+    buffer.seek(0)
+    plt.close()
+
+    file = discord.File(buffer, filename="top_players.png")
+
+    # Message texte
     msg = "**🏅 Top des joueurs par TrueSkill :**\n"
     for rank, (key, data) in enumerate(top_players, start=1):
-        if data['nb_matchs'] != 0:
-            win_rate = data['nb_win'] / data['nb_matchs']
-        else:
-            win_rate = 0.0
+        nb_matchs = data.get('nb_matchs', 0)
+        nb_win = data.get('nb_win', 0)
+        win_rate = (nb_win / nb_matchs) * 100 if nb_matchs > 0 else 0.0
 
         msg += (
-            f"{rank}. {data['display_name']} - μ: {data['mu']:.2f} "
-            f"(σ: {data['sigma']:.2f}, WR: {win_rate*100:.2f}%, Matches: {data['nb_matchs']})\n"
+            f"{rank}. {data.get('display_name', key)} - μ: {data.get('mu', 0):.2f} "
+            f"(σ: {data.get('sigma', 0):.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs})\n"
         )
 
-    await interaction.response.send_message(msg)
+    await interaction.response.send_message(content=msg, file=file)
+
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
 @app_commands.describe(joueurs="Noms des joueurs séparés par des espaces (nombre pair requis)")
