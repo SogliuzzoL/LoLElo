@@ -171,22 +171,39 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
 
     file = discord.File(buffer, filename="top_players.png")
 
-    # Message texte avec rangs
-    msg = "**🏅 Top des joueurs par TrueSkill :**\n"
-    for rank, (key, data) in enumerate(top_players, start=1):
-        nb_matchs = data.get('nb_matchs', 0)
-        nb_win = data.get('nb_win', 0)
-        win_rate = (nb_win / nb_matchs) * 100 if nb_matchs > 0 else 0.0
+    # Regrouper les joueurs par rang
+    ranked_groups = {}
+    for key, data in top_players:
         mu = data.get('mu', 0)
-        sigma = data.get('sigma', 0)
-        rang = get_rank(mu)
+        rank_label = get_rank(mu)
+        ranked_groups.setdefault(rank_label, []).append((key, data))
 
-        msg += (
-            f"{rank}. {data.get('display_name', key)} - {rang} "
-            f"(μ: {mu:.2f}, σ: {sigma:.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs})\n"
-        )
+    # Ordre des rangs pour l'affichage
+    rank_order = ["👑 Master", "🔷 Diamond", "💠 Platinum", "🥇 Gold", "🥈 Silver", "🥉 Bronze"]
+
+    msg = "**🏅 Classement des joueurs par rang TrueSkill :**\n\n"
+    for rank_name in rank_order:
+        joueurs = ranked_groups.get(rank_name, [])
+        if not joueurs:
+            continue
+
+        msg += f"__{rank_name}__\n"
+        # Tri interne par mu décroissant
+        joueurs.sort(key=lambda x: x[1].get('mu', 0), reverse=True)
+        for key, data in joueurs:
+            nb_matchs = data.get('nb_matchs', 0)
+            nb_win = data.get('nb_win', 0)
+            win_rate = (nb_win / nb_matchs) * 100 if nb_matchs > 0 else 0.0
+            mu = data.get('mu', 0)
+            sigma = data.get('sigma', 0)
+            msg += (
+                f"- {data.get('display_name', key)} • μ: {mu:.2f}, "
+                f"σ: {sigma:.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs}\n"
+            )
+        msg += "\n"
 
     await interaction.response.send_message(content=msg, file=file)
+
 
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
