@@ -130,8 +130,8 @@ async def match(interaction: discord.Interaction, winner: str, equipe_a: str, eq
 
 
 @tree.command(name="top", description="Affiche le classement des joueurs par Elo.")
-@app_commands.describe(top_n="Nombre de joueurs à afficher")
-async def top(interaction: discord.Interaction, top_n: int = 25):
+@app_commands.describe(top_n="Nombre de joueurs à afficher", offset="Nombre de joueurs à ignorer au début du classement")
+async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0):
     players = load_players()
     if not players:
         await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
@@ -139,7 +139,12 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
 
     # Tri des joueurs
     sorted_players = sorted(players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
-    top_players = sorted_players[:top_n]
+
+    # Appliquer l'offset
+    top_players = sorted_players[offset:offset + top_n]
+    if not top_players:
+        await interaction.response.send_message("❌ Aucun joueur trouvé dans cette tranche.", ephemeral=True)
+        return
 
     # Extraction des valeurs pour le graphique
     noms = [data.get('display_name', key) for key, data in top_players]
@@ -181,14 +186,13 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
     # Ordre des rangs pour l'affichage
     rank_order = ["👑 Master", "🔷 Diamond", "💠 Platinum", "🥇 Gold", "🥈 Silver", "🥉 Bronze"]
 
-    msg = "**🏅 Classement des joueurs par rang TrueSkill :**\n\n"
+    msg = f"**🏅 Classement des joueurs par rang TrueSkill (de {offset + 1} à {offset + len(top_players)}) :**\n\n"
     for rank_name in rank_order:
         joueurs = ranked_groups.get(rank_name, [])
         if not joueurs:
             continue
 
         msg += f"__{rank_name}__\n"
-        # Tri interne par mu décroissant
         joueurs.sort(key=lambda x: x[1].get('mu', 0), reverse=True)
         for key, data in joueurs:
             nb_matchs = data.get('nb_matchs', 0)
@@ -203,7 +207,6 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
         msg += "\n"
 
     await interaction.response.send_message(content=msg, file=file)
-
 
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
