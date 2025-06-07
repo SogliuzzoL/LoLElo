@@ -187,6 +187,7 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
     rank_order = ["👑 Master", "🔷 Diamond", "💠 Platinum", "🥇 Gold", "🥈 Silver", "🥉 Bronze"]
 
     msg = f"**🏅 Classement des joueurs par rang TrueSkill (de {offset + 1} à {offset + len(top_players)}) :**\n\n"
+    classement = offset + 1
     for rank_name in rank_order:
         joueurs = ranked_groups.get(rank_name, [])
         if not joueurs:
@@ -201,9 +202,10 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
             mu = data.get('mu', 0)
             sigma = data.get('sigma', 0)
             msg += (
-                f"- {data.get('display_name', key)} • μ: {mu:.2f}, "
+                f"{classement} - {data.get('display_name', key)} • μ: {mu:.2f}, "
                 f"σ: {sigma:.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs}\n"
             )
+            classement += 1
         msg += "\n"
 
     await interaction.response.send_message(content=msg, file=file)
