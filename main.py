@@ -60,7 +60,7 @@ def process_match(players, team_a, team_b, winner):
             players[player]["nb_win"] += 1
             
 def compute_ranks(mus):
-    percentiles = np.percentile(mus, [0, 20, 40, 60, 80, 95])
+    percentiles = np.percentile(mus, [0, 15, 35, 60, 80, 95])
     def get_rank(mu):
         if mu < percentiles[1]:
             return "🥉 Bronze"
