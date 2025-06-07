@@ -58,6 +58,23 @@ def process_match(players, team_a, team_b, winner):
         players[player]["nb_matchs"] += 1
         if winner == "B":
             players[player]["nb_win"] += 1
+            
+def compute_ranks(mus):
+        percentiles = np.percentile(mus, [0, 20, 40, 60, 80, 95])
+        def get_rank(mu):
+            if mu < percentiles[1]:
+                return "🪨 Iron"
+            elif mu < percentiles[2]:
+                return "🥈 Silver"
+            elif mu < percentiles[3]:
+                return "🥇 Gold"
+            elif mu < percentiles[4]:
+                return "💎 Platinum"
+            elif mu < percentiles[5]:
+                return "🔥 Diamond"
+            else:
+                return "🏆 Master"
+        return get_rank
 
 # Bot setup
 intents = discord.Intents.default()
@@ -111,20 +128,27 @@ async def match(interaction: discord.Interaction, winner: str, equipe_a: str, eq
 
     await interaction.response.send_message(msg)
 
+
 @tree.command(name="top", description="Affiche le classement des joueurs par Elo.")
 @app_commands.describe(top_n="Nombre de joueurs à afficher")
 async def top(interaction: discord.Interaction, top_n: int = 25):
     players = load_players()
     if not players:
         await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
-        return
+        return    
 
+    # Tri des joueurs
     sorted_players = sorted(players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
     top_players = sorted_players[:top_n]
 
+    # Extraction des valeurs pour le graphique
     noms = [data.get('display_name', key) for key, data in top_players]
     mus = [data.get('mu', 0) for _, data in top_players]
     sigmas = [data.get('sigma', 0) for _, data in top_players]
+
+    # Rangs dynamiques
+    mus_all = [data.get('mu', 0) for data in players.values()]
+    get_rank = compute_ranks(mus_all)
 
     # Création du gradient de couleur basé sur μ
     norm = plt.Normalize(min(mus), max(mus))
@@ -147,18 +171,23 @@ async def top(interaction: discord.Interaction, top_n: int = 25):
 
     file = discord.File(buffer, filename="top_players.png")
 
+    # Message texte avec rangs
     msg = "**🏅 Top des joueurs par TrueSkill :**\n"
     for rank, (key, data) in enumerate(top_players, start=1):
         nb_matchs = data.get('nb_matchs', 0)
         nb_win = data.get('nb_win', 0)
         win_rate = (nb_win / nb_matchs) * 100 if nb_matchs > 0 else 0.0
+        mu = data.get('mu', 0)
+        sigma = data.get('sigma', 0)
+        rang = get_rank(mu)
 
         msg += (
-            f"{rank}. {data.get('display_name', key)} - μ: {data.get('mu', 0):.2f} "
-            f"(σ: {data.get('sigma', 0):.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs})\n"
+            f"{rank}. {data.get('display_name', key)} - {rang} "
+            f"(μ: {mu:.2f}, σ: {sigma:.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs})\n"
         )
 
     await interaction.response.send_message(content=msg, file=file)
+
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
 @app_commands.describe(joueurs="Noms des joueurs séparés par des espaces (nombre pair requis)")
