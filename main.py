@@ -60,21 +60,21 @@ def process_match(players, team_a, team_b, winner):
             players[player]["nb_win"] += 1
             
 def compute_ranks(mus):
-        percentiles = np.percentile(mus, [0, 20, 40, 60, 80, 95])
-        def get_rank(mu):
-            if mu < percentiles[1]:
-                return "🪨 Iron"
-            elif mu < percentiles[2]:
-                return "🥈 Silver"
-            elif mu < percentiles[3]:
-                return "🥇 Gold"
-            elif mu < percentiles[4]:
-                return "💎 Platinum"
-            elif mu < percentiles[5]:
-                return "🔥 Diamond"
-            else:
-                return "🏆 Master"
-        return get_rank
+    percentiles = np.percentile(mus, [0, 20, 40, 60, 80, 95])
+    def get_rank(mu):
+        if mu < percentiles[1]:
+            return "🥉 Bronze"
+        elif mu < percentiles[2]:
+            return "🥈 Silver"
+        elif mu < percentiles[3]:
+            return "🥇 Gold"
+        elif mu < percentiles[4]:
+            return "💠 Platinum"
+        elif mu < percentiles[5]:
+            return "🔷 Diamond"
+        else:
+            return "👑 Master"
+    return get_rank
 
 # Bot setup
 intents = discord.Intents.default()
