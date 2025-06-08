@@ -262,7 +262,7 @@ async def team(interaction: discord.Interaction, joueurs: str, sigma: bool = Tru
     score_A = sum(players[p]['mu'] - 3 * players[p]['sigma'] for p in best_team_a) / len(best_team_a)
     score_B = sum(players[p]['mu'] - 3 * players[p]['sigma'] for p in best_team_b) / len(best_team_b)
 
-    sigma_info = 'σ prise en compte ' if sigma else ''
+    sigma_info = 'σ pris en compte ' if sigma else ''
     msg = f"**⚖️ Équipes équilibrées {sigma_info}:**\n\n"
 
     msg += f"**Équipe A** (μ = {mu_A:.2f}, μ-3σ = {score_A:.2f}) :\n{format_team(best_team_a)}\n\n"
