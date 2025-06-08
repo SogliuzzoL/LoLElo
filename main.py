@@ -202,7 +202,7 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
             mu = data.get('mu', 0)
             sigma = data.get('sigma', 0)
             msg += (
-                f"{classement} - {data.get('display_name', key)} • μ: {mu:.2f}, "
+                f"{classement}. {data.get('display_name', key)} • μ: {mu:.2f}, "
                 f"σ: {sigma:.2f}, WR: {win_rate:.2f}%, Matches: {nb_matchs}\n"
             )
             classement += 1
@@ -212,8 +212,8 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
 
 
 @tree.command(name="team", description="Génère deux équipes équilibrées à partir d'une liste de joueurs.")
-@app_commands.describe(joueurs="Noms des joueurs séparés par des espaces (nombre pair requis)")
-async def team(interaction: discord.Interaction, joueurs: str):
+@app_commands.describe(joueurs="Noms des joueurs séparés par des espaces (nombre pair requis)", sigma="Prise en compte du sigma dans la création des équipes")
+async def team(interaction: discord.Interaction, joueurs: str, sigma: bool = True):
     players = load_players()
     noms = joueurs.split()
     noms = [p.lower() for p in noms]
@@ -234,10 +234,16 @@ async def team(interaction: discord.Interaction, joueurs: str):
     for combo in itertools.combinations(noms, len(noms) // 2):
         team_a = list(combo)
         team_b = [p for p in noms if p not in team_a]
-
-        mu_a = sum(players[p]["mu"] for p in team_a)
-        mu_b = sum(players[p]["mu"] for p in team_b)
-        diff = abs(mu_a - mu_b)
+        diff = 0
+        
+        if sigma:
+            score_a = sum(players[p]["mu"] - 3 * players[p]["sigma"] for p in team_a)
+            score_b = sum(players[p]["mu"] - 3 * players[p]["sigma"] for p in team_b)
+            diff = abs(score_a - score_b)
+        else:
+            mu_a = sum(players[p]["mu"] for p in team_a)
+            mu_b = sum(players[p]["mu"] for p in team_b)
+            diff = abs(mu_a - mu_b)
 
         if diff < best_diff:
             best_diff = diff
@@ -252,10 +258,14 @@ async def team(interaction: discord.Interaction, joueurs: str):
 
     mu_A = sum(players[p]['mu'] for p in best_team_a) / len(best_team_a)
     mu_B = sum(players[p]['mu'] for p in best_team_b) / len(best_team_b)
+
+    score_A = sum(players[p]['mu'] - 3 * players[p]['sigma'] for p in best_team_a) / len(best_team_a)
+    score_B = sum(players[p]['mu'] - 3 * players[p]['sigma'] for p in best_team_b) / len(best_team_b)
+
     msg = "**⚖️ Équipes équilibrées :**\n\n"
-    msg += f"**Équipe A** (μ = {mu_A:.2f}) :\n{format_team(best_team_a)}\n\n"
-    msg += f"**Équipe B** (μ = {mu_B:.2f}) :\n{format_team(best_team_b)}\n\n"
-    msg += f"Différence μ : {abs(mu_A - mu_B):.2f}"
+    msg += f"**Équipe A** (μ = {mu_A:.2f}, μ-3σ = {score_A:.2f}) :\n{format_team(best_team_a)}\n\n"
+    msg += f"**Équipe B** (μ = {mu_B:.2f}, μ-3σ = {score_B:.2f}) :\n{format_team(best_team_b)}\n\n"
+    msg += f"Différence • μ : {abs(mu_A - mu_B):.2f}, μ-3σ : {abs(score_A - score_B):.2f}"
 
     await interaction.response.send_message(msg)
 
