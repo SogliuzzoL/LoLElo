@@ -235,7 +235,7 @@ async def team(interaction: discord.Interaction, joueurs: str, sigma: bool = Tru
         team_a = list(combo)
         team_b = [p for p in noms if p not in team_a]
         diff = 0
-        
+
         if sigma:
             score_a = sum(players[p]["mu"] - 3 * players[p]["sigma"] for p in team_a)
             score_b = sum(players[p]["mu"] - 3 * players[p]["sigma"] for p in team_b)
@@ -262,7 +262,7 @@ async def team(interaction: discord.Interaction, joueurs: str, sigma: bool = Tru
     score_A = sum(players[p]['mu'] - 3 * players[p]['sigma'] for p in best_team_a) / len(best_team_a)
     score_B = sum(players[p]['mu'] - 3 * players[p]['sigma'] for p in best_team_b) / len(best_team_b)
 
-    msg = "**⚖️ Équipes équilibrées :**\n\n"
+    msg = f"**⚖️ Équipes équilibrées {"σ prise en compte " if sigma else ""}:**\n\n"
     msg += f"**Équipe A** (μ = {mu_A:.2f}, μ-3σ = {score_A:.2f}) :\n{format_team(best_team_a)}\n\n"
     msg += f"**Équipe B** (μ = {mu_B:.2f}, μ-3σ = {score_B:.2f}) :\n{format_team(best_team_b)}\n\n"
     msg += f"Différence • μ : {abs(mu_A - mu_B):.2f}, μ-3σ : {abs(score_A - score_B):.2f}"
