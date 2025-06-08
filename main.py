@@ -252,7 +252,7 @@ async def team(interaction: discord.Interaction, joueurs: str, sigma: bool = Tru
 
     def format_team(team):
         return "\n".join(
-            f"- {players[p]['display_name']} ({players[p]['mu']:.2f})"
+            f"- {players[p]['display_name']} (μ : {players[p]['mu']:.2f}, μ-3σ : {(players[p]['mu'] - 3*players[p]['sigma']):.2f})"
             for p in team
         )
 
