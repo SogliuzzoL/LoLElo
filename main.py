@@ -12,6 +12,7 @@ import os
 import itertools
 import math
 import io
+import time
 
 # Chargement config
 with open("config.json", "r") as f:
@@ -36,7 +37,7 @@ def save_players(players):
 def register_player(players, name):
     key = name.lower()
     if key not in players:
-        players[key] = {"mu": MU, "sigma": SIGMA, "nb_matchs": 0, "nb_win": 0, "display_name": name}
+        players[key] = {"mu": MU, "sigma": SIGMA, "nb_matchs": 0, "nb_win": 0, "display_name": name, "last_match": 0}
 
 def process_match(players, team_a, team_b, winner):
     team_A = [Rating(mu=players[player]["mu"],sigma=players[player]["sigma"]) for player in team_a]
@@ -44,11 +45,13 @@ def process_match(players, team_a, team_b, winner):
     ranks = [0, 1] if winner == "A" else [1, 0]
 
     team_A, team_B = rate([team_A, team_B], ranks=ranks)
+    now = int(time.time())
 
     for (player, rating) in zip(team_a, team_A):
         players[player]["mu"] = rating.mu
         players[player]["sigma"] = rating.sigma
         players[player]["nb_matchs"] += 1
+        players[player]["last_match"] = now
         if winner == "A":
             players[player]["nb_win"] += 1
 
@@ -56,6 +59,7 @@ def process_match(players, team_a, team_b, winner):
         players[player]["mu"] = rating.mu
         players[player]["sigma"] = rating.sigma
         players[player]["nb_matchs"] += 1
+        players[player]["last_match"] = now
         if winner == "B":
             players[player]["nb_win"] += 1
             
@@ -137,8 +141,21 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
         await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
         return    
 
-    # Tri des joueurs
-    sorted_players = sorted(players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
+    # Timestamp il y a 14 jours
+    two_weeks_ago = int(time.time()) - 14 * 24 * 60 * 60
+
+    # Filtrer les joueurs actifs récents
+    recent_players = {
+        key: data for key, data in players.items()
+        if data.get("last_match", 0) >= two_weeks_ago
+    }
+
+    if not recent_players:
+        await interaction.response.send_message("❌ Aucun joueur actif dans les 2 dernières semaines.", ephemeral=True)
+        return
+
+    # Tri des joueurs récents
+    sorted_players = sorted(recent_players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
 
     # Appliquer l'offset
     top_players = sorted_players[offset:offset + top_n]
@@ -151,9 +168,11 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
     mus = [data.get('mu', 0) for _, data in top_players]
     sigmas = [data.get('sigma', 0) for _, data in top_players]
 
-    # Rangs dynamiques
-    mus_all = [data.get('mu', 0) for data in players.values()]
-    get_rank = compute_ranks(mus_all)
+    # Récupère les mus des joueurs récents
+    mus_recent = [players[player]['mu'] for player in recent_players if player in players]
+
+    # Calcule les rangs dynamiques
+    get_rank = compute_ranks(mus_recent)
 
     # Création du gradient de couleur basé sur μ
     norm = plt.Normalize(min(mus), max(mus))
