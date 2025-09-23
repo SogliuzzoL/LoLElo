@@ -1,18 +1,19 @@
-import discord
-from discord.ext import commands
-from discord import app_commands
-from typing import List
-from trueskill import Rating, rate
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import seaborn as sns
-import numpy as np
-import json
-import os
-import itertools
-import math
 import io
+import itertools
+import json
+import math
+import os
 import time
+from typing import List
+
+import discord
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from discord import app_commands
+from discord.ext import commands
+from trueskill import Rating, rate
 
 # Chargement config
 with open("config.json", "r") as f:
@@ -134,8 +135,8 @@ async def match(interaction: discord.Interaction, winner: str, equipe_a: str, eq
 
 
 @tree.command(name="top", description="Affiche le classement des joueurs par Elo.")
-@app_commands.describe(top_n="Nombre de joueurs à afficher", offset="Nombre de joueurs à ignorer au début du classement")
-async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0):
+@app_commands.describe(top_n="Nombre de joueurs à afficher", offset="Nombre de joueurs à ignorer au début du classement", show_all="Afficher tous les joueurs, y compris inactifs")
+async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0, show_all: bool = False):
     players = load_players()
     if not players:
         await interaction.response.send_message("❌ Aucun joueur enregistré.", ephemeral=True)
@@ -145,10 +146,13 @@ async def top(interaction: discord.Interaction, top_n: int = 25, offset: int = 0
     two_weeks_ago = int(time.time()) - 14 * 24 * 60 * 60
 
     # Filtrer les joueurs actifs récents
-    recent_players = {
-        key: data for key, data in players.items()
-        if data.get("last_match", 0) >= two_weeks_ago
-    }
+    if show_all:
+        recent_players = players
+    else:
+        recent_players = {
+            key: data for key, data in players.items()
+            if data.get("last_match", 0) >= two_weeks_ago
+        }
 
     if not recent_players:
         await interaction.response.send_message("❌ Aucun joueur actif dans les 2 dernières semaines.", ephemeral=True)
