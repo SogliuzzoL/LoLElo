@@ -71,8 +71,6 @@ def process_match(players, team_a, team_b, winner):
             players[player]["nb_win"] += 1
 
 
-
-
 def compute_ranks(mus):
     percentiles = np.percentile(mus, [0, 15, 35, 60, 80, 95])
     def get_rank(mu):
@@ -89,7 +87,6 @@ def compute_ranks(mus):
         else:
             return "👑 Master"
     return get_rank
-
 
 
 # Bot setup
@@ -117,15 +114,7 @@ class TopView(discord.ui.View):
             return
 
         two_weeks_ago = int(time.time()) - 14 * 24 * 60 * 60
-        two_weeks_ago = int(time.time()) - 14 * 24 * 60 * 60
 
-        if self.show_all:
-            recent_players = players
-        else:
-            recent_players = {
-                key: data for key, data in players.items()
-                if data.get("last_match", 0) >= two_weeks_ago
-            }
         if self.show_all:
             recent_players = players
         else:
@@ -137,18 +126,10 @@ class TopView(discord.ui.View):
         if not recent_players:
             await interaction.response.edit_message(content="❌ Aucun joueur actif dans les 2 dernières semaines.", attachments=[], view=self)
             return
-        if not recent_players:
-            await interaction.response.edit_message(content="❌ Aucun joueur actif dans les 2 dernières semaines.", attachments=[], view=self)
-            return
 
         sorted_players = sorted(recent_players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
         top_players = sorted_players[self.offset:self.offset + self.top_n]
-        sorted_players = sorted(recent_players.items(), key=lambda x: x[1].get('mu', 0), reverse=True)
-        top_players = sorted_players[self.offset:self.offset + self.top_n]
 
-        if not top_players:
-            await interaction.response.edit_message(content="❌ Aucun joueur trouvé dans cette tranche.", attachments=[], view=self)
-            return
         if not top_players:
             await interaction.response.edit_message(content="❌ Aucun joueur trouvé dans cette tranche.", attachments=[], view=self)
             return
@@ -156,29 +137,13 @@ class TopView(discord.ui.View):
         noms = [data.get('display_name', key) for key, data in top_players]
         mus = [data.get('mu', 0) for _, data in top_players]
         sigmas = [data.get('sigma', 0) for _, data in top_players]
-        noms = [data.get('display_name', key) for key, data in top_players]
-        mus = [data.get('mu', 0) for _, data in top_players]
-        sigmas = [data.get('sigma', 0) for _, data in top_players]
 
-        mus_recent = [players[player]['mu'] for player in recent_players if player in players]
-        get_rank = compute_ranks(mus_recent)
         mus_recent = [players[player]['mu'] for player in recent_players if player in players]
         get_rank = compute_ranks(mus_recent)
 
         norm = plt.Normalize(min(mus), max(mus))
         colors = cm.viridis(norm(mus))
-        norm = plt.Normalize(min(mus), max(mus))
-        colors = cm.viridis(norm(mus))
 
-        plt.figure(figsize=(10, 0.4 * len(noms) + 2))
-        y_pos = range(len(noms))
-        plt.barh(y_pos, mus, xerr=sigmas, align='center', color=colors, ecolor='black', capsize=5)
-        plt.yticks(y_pos, noms)
-        plt.xlabel("μ (Moyenne de performance)")
-        plt.title("Classement TrueSkill avec incertitude (σ)")
-        plt.gca().invert_yaxis()
-        plt.grid(axis='x', linestyle='--', alpha=0.5)
-        plt.tight_layout()
         plt.figure(figsize=(10, 0.4 * len(noms) + 2))
         y_pos = range(len(noms))
         plt.barh(y_pos, mus, xerr=sigmas, align='center', color=colors, ecolor='black', capsize=5)
@@ -193,12 +158,7 @@ class TopView(discord.ui.View):
         plt.savefig(buffer, format="png")
         buffer.seek(0)
         plt.close()
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
-        plt.close()
 
-        file = discord.File(buffer, filename="top_players.png")
         file = discord.File(buffer, filename="top_players.png")
 
         ranked_groups = {}
@@ -206,35 +166,9 @@ class TopView(discord.ui.View):
             mu = data.get('mu', 0)
             rank_label = get_rank(mu)
             ranked_groups.setdefault(rank_label, []).append((key, data))
-        ranked_groups = {}
-        for key, data in top_players:
-            mu = data.get('mu', 0)
-            rank_label = get_rank(mu)
-            ranked_groups.setdefault(rank_label, []).append((key, data))
 
         rank_order = ["👑 Master", "🔷 Diamond", "💠 Platinum", "🥇 Gold", "🥈 Silver", "🥉 Bronze"]
-        rank_order = ["👑 Master", "🔷 Diamond", "💠 Platinum", "🥇 Gold", "🥈 Silver", "🥉 Bronze"]
 
-        msg = f"**🏅 Classement des joueurs (de {self.offset + 1} à {self.offset + len(top_players)}) :**\n\n"
-        classement = self.offset + 1
-        for rank_name in rank_order:
-            joueurs = ranked_groups.get(rank_name, [])
-            if not joueurs:
-                continue
-            msg += f"__{rank_name}__\n"
-            joueurs.sort(key=lambda x: x[1].get('mu', 0), reverse=True)
-            for key, data in joueurs:
-                nb_matchs = data.get('nb_matchs', 0)
-                nb_win = data.get('nb_win', 0)
-                win_rate = (nb_win / nb_matchs) * 100 if nb_matchs > 0 else 0.0
-                mu = data.get('mu', 0)
-                sigma = data.get('sigma', 0)
-                msg += (
-                    f"{classement}. {data.get('display_name', key)} • μ: {mu:.2f}, "
-                    f"σ: {sigma:.2f}, WR: {win_rate:.1f}%, Matchs: {nb_matchs}\n"
-                )
-                classement += 1
-            msg += "\n"
         msg = f"**🏅 Classement des joueurs (de {self.offset + 1} à {self.offset + len(top_players)}) :**\n\n"
         classement = self.offset + 1
         for rank_name in rank_order:
@@ -336,8 +270,15 @@ async def match(interaction: discord.Interaction, winner: str, equipe_a: str, eq
 async def team(interaction: discord.Interaction, joueurs: str, sigma: bool = True):
     players = load_players()
     noms = joueurs.split()
+    noms = [p.lower() for p in noms]
+
+    if len(noms) % 2 != 0:
+        await interaction.response.send_message("❌ Le nombre de joueurs doit être pair.", ephemeral=True)
+        return
+
     for name in noms:
         register_player(players, name)
+
     save_players(players)
 
     best_diff = math.inf
@@ -398,9 +339,7 @@ async def on_ready():
     try:
         synced = await tree.sync()
         print(f"📦 {len(synced)} commandes synchronisées")
-        print(f"📦 {len(synced)} commandes synchronisées")
     except Exception as e:
         print(f"⚠️ Erreur de sync : {e}")
 
 bot.run(TOKEN)
-
